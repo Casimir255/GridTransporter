@@ -13,6 +13,7 @@ using Sandbox.Game.World;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Torch.Mod;
@@ -32,7 +33,7 @@ namespace GridTransporter.BoundrySystem
 
         private List<MyObjectBuilder_CubeGrid> GridObjects = new List<MyObjectBuilder_CubeGrid>();
 
-
+        private static MethodInfo OnSetPlayerDeadSuccess = typeof(MyPlayerCollection).GetMethod("OnSetPlayerDeadSuccess", BindingFlags.Static | BindingFlags.NonPublic);
 
 
         [ProtoMember(7)]
@@ -82,13 +83,15 @@ namespace GridTransporter.BoundrySystem
 
 
             MyEntities.RemapObjectBuilderCollection(GridObjects);
-            TransferNewOwnership();
+          
 
 
             await NetworkUtility.InvokeAsync(() => ValidateCharacters());
 
+            TransferNewOwnership();
+
             /* Remap Pilots */
-            foreach(var grid in GridObjects)
+            foreach (var grid in GridObjects)
             {
                 foreach(var block in grid.CubeBlocks.OfType<MyObjectBuilder_Cockpit>())
                 {
@@ -101,6 +104,7 @@ namespace GridTransporter.BoundrySystem
                             block.Pilot = null;
                             continue;
                         }
+
 
                         block.Pilot.OwningPlayerIdentityId = owner.NewIdentity;
                     }
@@ -243,30 +247,43 @@ namespace GridTransporter.BoundrySystem
                         {
                             Log.Warn("Spawning " + Identity.DisplayName + " into their cockpit!");
                             //MyPlayer Player = MySession.Static.Players.GetPlayerById(ID);
-
-                            Identity.LastLogoutTime = DateTime.Now;
-                            Identity.LastLoginTime = DateTime.Now;
-                            //Identity.Character?.Close();
-                            //Identity.SavedCharacters.Clear();
-                            //Identity.BlockLimits.SetAllDirty();
-
-                            //Identity.LastLoginTime = DateTime.Now;
-
-                            Identity.SavedCharacters.Add(c.Pilot.EntityId);
-                            //Identity.ChangeCharacter(c.Pilot);
-                            MySession.Static.Players.SetControlledEntity(ID2, c.Pilot);
-
-                            //RemovePilot.Invoke(MySession.Static.Players, new object[] { true, ID2});
-
-                            //need to invoke this as static event
-
-                            //SetControlledEntity.Invoke(null, new object[] { ID2.SteamId, ID2.SerialId, CharacterID, false });
-                            // MySession.Static.Players.SetControlledEntity(ID2, c.Pilot);
+                            SpawnIntoCharacter(ID2, c.Pilot);
                         }
                     }
                 }
             }
 
+
+        }
+
+        public void SpawnIntoCharacter(MyPlayer.PlayerId PlayerID, MyCharacter newCharacter)
+        {
+            //newCharacter.SetPlayer(player);
+            //MyPlayerCollection.ChangePlayerCharacter(player, this, this);
+
+
+            MyIdentity Identity = MySession.Static.Players.TryGetPlayerIdentity(PlayerID);
+            if (Identity == null)
+                return;
+
+
+
+            //Set the identity new character
+            Identity.ChangeCharacter(newCharacter);
+
+            //Prevents trash collector from grabbing characters
+            Identity.LastLogoutTime = DateTime.Now;
+            Identity.LastLoginTime = DateTime.Now - TimeSpan.FromSeconds(5);
+
+            //Sync.Players.SetControlledEntityInternal(player.Id, entity, false);
+            //Shouldnt have to do above since player isnt online
+
+
+            //SetPlayerDeadInternal
+            Identity.SetDead(false);
+
+            Events.RaiseStaticEvent<ulong, int, bool, bool>(OnSetPlayerDeadSuccess, PlayerID.SteamId, PlayerID.SerialId, false, false);
+            Log.Error($"Reviving player {Identity.DisplayName}!");
 
         }
 

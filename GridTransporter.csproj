@@ -114,6 +114,7 @@
       <DependentUpon>UserControlInterface.xaml</DependentUpon>
     </Compile>
     <Compile Include="Utilities\EntityBase.cs" />
+    <Compile Include="Utilities\Events.cs" />
     <Compile Include="Utilities\GridUtilities.cs" />
     <Compile Include="Utilities\NetworkUtility.cs" />
     <Compile Include="Utilities\ParallelSpawner.cs" />
