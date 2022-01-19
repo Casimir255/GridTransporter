@@ -117,7 +117,7 @@ namespace GridTransporter.BoundrySystem
             if (TimerList.ContainsKey(GridID))
             {
 
-                if (TimerList[GridID] > Region.Timer)
+                if (TimerList[GridID] >= Region.Timer - 1)
                 {
                     //Hey, Grid is ready for jump
                     return true;

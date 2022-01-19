@@ -82,6 +82,7 @@ namespace GridTransporter.BoundrySystem
 
 
             MyEntities.RemapObjectBuilderCollection(GridObjects);
+            TransferNewOwnership();
 
 
             await NetworkUtility.InvokeAsync(() => ValidateCharacters());
@@ -120,6 +121,7 @@ namespace GridTransporter.BoundrySystem
             return;
         }
 
+
         private bool ValidateCharacters()
         {
             List<PlayerItem> AllPlayers = Players;
@@ -150,6 +152,24 @@ namespace GridTransporter.BoundrySystem
             }
 
             return true;
+        }
+
+        private void TransferNewOwnership()
+        {
+            PlayerItem Item = Players.FirstOrDefault();
+
+            if (Item == null)
+                return;
+
+
+            foreach (var grid in GridObjects)
+            {
+                foreach(var block in grid.CubeBlocks)
+                {
+                    block.BuiltBy = Item.NewIdentity;
+                    block.Owner = Item.NewIdentity;
+                }
+            }
         }
 
         private bool Deserialize()
@@ -183,7 +203,7 @@ namespace GridTransporter.BoundrySystem
 
         }
 
-
+        
         private void ReApplyVeloctiy(HashSet<MyCubeGrid> SpawnedGrids)
         {
             foreach (var Grid in SpawnedGrids)
@@ -204,6 +224,9 @@ namespace GridTransporter.BoundrySystem
                 {
                     foreach (MySlimBlock item in CubeGird.GetBlocks())
                     {
+                        if ((item?.FatBlock is MyCockpit))
+                            continue;
+
 
                         MyCockpit c = item?.FatBlock as MyCockpit;
 
@@ -246,7 +269,6 @@ namespace GridTransporter.BoundrySystem
 
 
         }
-
 
         private void RelockAllGear()
         {
