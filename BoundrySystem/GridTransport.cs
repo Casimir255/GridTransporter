@@ -220,20 +220,22 @@ namespace GridTransporter.BoundrySystem
 
         private void SpawnCharactersInGrid(HashSet<MyCubeGrid> SpawnedGrids)
         {
-
+            Log.Warn("Players: " + Players.Count);
             if (Players != null && Players.Count > 0)
             {
                 //Attempt to get block where character was
                 foreach (MyCubeGrid CubeGird in SpawnedGrids)
                 {
-                    foreach (MySlimBlock item in CubeGird.GetBlocks())
+                    foreach (var item in CubeGird.GetFatBlocks())
                     {
-                        if ((item?.FatBlock is MyCockpit))
+
+                        if (!(item is MyCockpit))
                             continue;
 
 
-                        MyCockpit c = item?.FatBlock as MyCockpit;
+                        MyCockpit c = item as MyCockpit;
 
+                      
                         if (c == null || c.Pilot == null)
                             continue;
 
