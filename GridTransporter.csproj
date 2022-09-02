@@ -38,21 +38,27 @@
     <Reference Include="PresentationFramework" />
     <Reference Include="ProtoBuf.Net">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\ProtoBuf.Net.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="ProtoBuf.Net.Core">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\ProtoBuf.Net.Core.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Sandbox.Common">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\Sandbox.Common.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Sandbox.Game">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\Sandbox.Game.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="SpaceEngineers.Game">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\SpaceEngineers.Game.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="SpaceEngineers.ObjectBuilders">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\SpaceEngineers.ObjectBuilders.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -65,27 +71,35 @@
     <Reference Include="System.Xml" />
     <Reference Include="Torch">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\Torch.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Torch.API">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\Torch.API.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Torch.Server">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\Torch.Server.exe</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="VRage">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\VRage.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="VRage.Game">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\VRage.Game.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="VRage.Library">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\VRage.Library.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="VRage.Math">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\VRage.Math.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="VRage.Render">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\VRage.Render.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>
@@ -119,6 +133,11 @@
     <PackageReference Include="WatsonTcp">
       <Version>4.8.14.6</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="manifest.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
