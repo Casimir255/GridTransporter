@@ -75,22 +75,29 @@ namespace GridTransporter.BoundrySystem
 
         public async Task SpawnAsync()
         {
+            /*  Starts grid spawning task. This is async as we will be waiting for the game to confirm the remaps.
+             *  We first need to deserialize and prep the grid.
+             *  
+             */
+
             if (!Deserialize())
                 return;
 
-
+            //Fixes any issues with grids spawning and being connected with landing gears. (Figherts in hangar)
             RelockAllGear();
 
-
+            //Remaps entities so the numbers dont collide with anything previously in the game
             MyEntities.RemapObjectBuilderCollection(GridObjects);
           
 
-
+            //Validates player identities. If we have new players that have never been to this recieving player we need to create their identity and apply it on the grid before spawn.
+            //If this player has been to this server, we need to grab their exsisting ID and replace it with the one they previously held in the sending server.
+            //We will need to await for this to be completed before we start transferring owner ship of blocks
             await NetworkUtility.InvokeAsync(() => ValidateCharacters());
 
             TransferNewOwnership();
 
-            /* Remap Pilots */
+            /* Remap Pilots to their new found identities */
             foreach (var grid in GridObjects)
             {
                 foreach(var block in grid.CubeBlocks.OfType<MyObjectBuilder_Cockpit>())
@@ -112,7 +119,7 @@ namespace GridTransporter.BoundrySystem
 
             }
 
-
+            //Possible grid backup if grid is owned by majority
             if (BigOwner != 0)
             {
                 PluginDependencyManager.GridBackupInvoke(GridObjects, BigOwner);
@@ -121,6 +128,8 @@ namespace GridTransporter.BoundrySystem
 
 
             ParallelSpawner Spawner = new ParallelSpawner(GridObjects, AfterGridSpawn);
+
+            //Following warning is fine. This is a fire and forget
             Spawner.Start(SpawnPosition);
             return;
         }
@@ -133,23 +142,32 @@ namespace GridTransporter.BoundrySystem
 
             foreach (PlayerItem P in AllPlayers)
             {
+                //Attempts to find an exsisting ID
                 long FoundID = MySession.Static.Players.TryGetIdentityId(P.SteamID);
-                if (FoundID == 0)
+                long newIdentitiy;
+
+                //If we have found an acceptable ID replace it with the found one
+                if (FoundID != 0)
                 {
-                    Log.Warn($"{P.PlayerName} does not exsist on this server! Create!");
-                    MyIdentity ID = CreateIdentityForPlayer(P);
-
-                    //Set new identity so we can adjust this later
-                    P.NewIdentity = ID.IdentityId;
-
-                    if(BigOwner == P.IdentityID)
-                    {
-                        BigOwner = P.NewIdentity;
-                    }
-
-                    continue;
+                    newIdentitiy = FoundID;
                 }
-                   
+                else
+                {
+                    //If we dont have an ID on this server with this STEAMID then create one
+                    MyIdentity ID = CreateIdentityForPlayer(P);
+                    Log.Info($"{P.PlayerName} does not exsist on this server! Succesfully created {ID.IdentityId}!");
+                    newIdentitiy = ID.IdentityId;
+                }
+
+
+                //Set new identity so we can adjust this later
+                P.NewIdentity = newIdentitiy;
+
+                //If this ID that we are replacing is the bigowner of the grid, we need to update that aswell so we can perform gridback for this player. If they arent... then they SOL
+                if (BigOwner == P.IdentityID)
+                {
+                    BigOwner = newIdentitiy;
+                }
 
                 Log.Info($"Attempting to clear {P.PlayerName} saved characters in this server!");
                 CharacterUtilities.ClearSavedCharacters(FoundID);
@@ -165,7 +183,7 @@ namespace GridTransporter.BoundrySystem
             if (Item == null)
                 return;
 
-
+            //Transfers all grids to first player in the transfer list
             foreach (var grid in GridObjects)
             {
                 foreach(var block in grid.CubeBlocks)
@@ -202,6 +220,7 @@ namespace GridTransporter.BoundrySystem
 
         private void AfterGridSpawn(HashSet<MyCubeGrid> SpawnedGrids)
         {
+            //Event after the grid spawn
             SpawnCharactersInGrid(SpawnedGrids);
             ReApplyVeloctiy(SpawnedGrids);
 
@@ -220,7 +239,7 @@ namespace GridTransporter.BoundrySystem
 
         private void SpawnCharactersInGrid(HashSet<MyCubeGrid> SpawnedGrids)
         {
-            Log.Warn("Players: " + Players.Count);
+            //Log.Warn("Players: " + Players.Count);
             if (Players != null && Players.Count > 0)
             {
                 //Attempt to get block where character was
@@ -241,14 +260,22 @@ namespace GridTransporter.BoundrySystem
 
 
                         MyIdentity Identity = c.Pilot.GetIdentity();
+                        if(Identity is null)
+                        {
+                            //This shouldnt occur, but we added this for null check
+                            Log.Error($"{c.Pilot.EntityId} doesnt have an identity!");
+                            continue;
+                        }    
+
+
                         Identity.Character?.Close();
                         Identity.SavedCharacters.Clear();
 
-                        //Had an error on the previous line
+
                         if (MySession.Static.Players.TryGetPlayerId(Identity.IdentityId, out MyPlayer.PlayerId ID2))
                         {
                             Log.Warn("Spawning " + Identity.DisplayName + " into their cockpit!");
-                            //MyPlayer Player = MySession.Static.Players.GetPlayerById(ID);
+                            //Re-spawn this new player identity back into their proper body
                             SpawnIntoCharacter(ID2, c.Pilot);
                         }
                     }
@@ -284,13 +311,15 @@ namespace GridTransporter.BoundrySystem
             //SetPlayerDeadInternal
             Identity.SetDead(false);
 
+            //Event lets players know the player has been spawned/revived
             Events.RaiseStaticEvent<ulong, int, bool, bool>(OnSetPlayerDeadSuccess, PlayerID.SteamId, PlayerID.SerialId, false, false);
-            Log.Error($"Reviving player {Identity.DisplayName}!");
+            //Log.Error($"Reviving player {Identity.DisplayName}!");
 
         }
 
         private void RelockAllGear()
         {
+            //Ye ye you get the jist
             foreach (var grid in GridObjects)
             {
                 foreach (var block in grid.CubeBlocks.OfType<MyObjectBuilder_LandingGear>())
@@ -310,6 +339,8 @@ namespace GridTransporter.BoundrySystem
 
         private void PrepareGrids(List<MyCubeGrid> Grids)
         {
+            //Preps the grid for serializing/transferring
+
             try
             {
                 string BiggestGridName = "";
