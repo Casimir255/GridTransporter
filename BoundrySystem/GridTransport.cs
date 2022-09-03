@@ -19,6 +19,7 @@ using System.Threading.Tasks;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using VRage.Game;
+using VRage.Game.ObjectBuilders.Components;
 using VRageMath;
 
 namespace GridTransporter.BoundrySystem
@@ -86,9 +87,7 @@ namespace GridTransporter.BoundrySystem
             //Fixes any issues with grids spawning and being connected with landing gears. (Figherts in hangar)
             RelockAllGear();
 
-            //Remaps entities so the numbers dont collide with anything previously in the game
-            MyEntities.RemapObjectBuilderCollection(GridObjects);
-          
+
 
             //Validates player identities. If we have new players that have never been to this recieving player we need to create their identity and apply it on the grid before spawn.
             //If this player has been to this server, we need to grab their exsisting ID and replace it with the one they previously held in the sending server.
@@ -98,26 +97,56 @@ namespace GridTransporter.BoundrySystem
             TransferNewOwnership();
 
             /* Remap Pilots to their new found identities */
+
+            foreach (var p in Players)
+                Log.Warn($"PlayerInTransfer: {p.PlayerName} : {p.IdentityID}");
+
+
             foreach (var grid in GridObjects)
             {
-                foreach(var block in grid.CubeBlocks.OfType<MyObjectBuilder_Cockpit>())
+                foreach (var block in grid.CubeBlocks.OfType<MyObjectBuilder_Cockpit>())
                 {
-                    if(block.Pilot != null)
+                    if (block.Pilot != null)
                     {
 
+                        //OwningPlayerIdentityId: Should be the old identity from the previous server
                         PlayerItem owner = Players.FirstOrDefault(x => x.IdentityID == block.Pilot.OwningPlayerIdentityId);
-                        if(owner == null)
+
+                        //Log.Warn($"{block.Pilot.DisplayName}:{block.Pilot.OwningPlayerIdentityId} -> {owner.NewIdentity} - {block.ComponentContainer.Components.Count()} components");
+
+                        MyObjectBuilder_HierarchyComponentBase hierarchy = (MyObjectBuilder_HierarchyComponentBase)block.ComponentContainer.Components.FirstOrDefault(x => x.Component is MyObjectBuilder_HierarchyComponentBase).Component;
+                        MyObjectBuilder_Character character = (MyObjectBuilder_Character)hierarchy?.Children.First(x => x is MyObjectBuilder_Character);
+
+
+                        if (character == null)
+                        {
+                            Log.Fatal("Unable to find character component base in cockpit components!");
+                            return;
+                        }
+
+                        character.OwningPlayerIdentityId = owner.NewIdentity;
+
+                        //Log.Info($"Succesfully updated character component in cockpit with new Identity!");
+
+
+                        if (owner == null)
                         {
                             block.Pilot = null;
                             continue;
                         }
 
-
+                        //Not sticking with new identity
                         block.Pilot.OwningPlayerIdentityId = owner.NewIdentity;
+                        //Log.Warn($"{owner.NewIdentity} -> {block.Pilot.OwningPlayerIdentityId}");
                     }
                 }
 
             }
+
+
+            //Remaps entities so the numbers dont collide with anything previously in the game
+            //MyEntities.RemapObjectBuilderCollection(GridObjects);
+
 
             //Possible grid backup if grid is owned by majority
             if (BigOwner != 0)
@@ -149,7 +178,11 @@ namespace GridTransporter.BoundrySystem
                 //If we have found an acceptable ID replace it with the found one
                 if (FoundID != 0)
                 {
+                    var id = MySession.Static.Players.TryGetIdentity(FoundID);
+                    Log.Warn($"Found an identity with the specifiedID {FoundID}! {id.DisplayName}");
+
                     newIdentitiy = FoundID;
+                    CharacterUtilities.ClearSavedCharacters(FoundID);
                 }
                 else
                 {
@@ -170,7 +203,7 @@ namespace GridTransporter.BoundrySystem
                 }
 
                 Log.Info($"Attempting to clear {P.PlayerName} saved characters in this server!");
-                CharacterUtilities.ClearSavedCharacters(FoundID);
+
             }
 
             return true;
@@ -186,7 +219,7 @@ namespace GridTransporter.BoundrySystem
             //Transfers all grids to first player in the transfer list
             foreach (var grid in GridObjects)
             {
-                foreach(var block in grid.CubeBlocks)
+                foreach (var block in grid.CubeBlocks)
                 {
                     block.BuiltBy = Item.NewIdentity;
                     block.Owner = Item.NewIdentity;
@@ -226,7 +259,7 @@ namespace GridTransporter.BoundrySystem
 
         }
 
-        
+
         private void ReApplyVeloctiy(HashSet<MyCubeGrid> SpawnedGrids)
         {
             foreach (var Grid in SpawnedGrids)
@@ -254,18 +287,18 @@ namespace GridTransporter.BoundrySystem
 
                         MyCockpit c = item as MyCockpit;
 
-                      
+
                         if (c == null || c.Pilot == null)
                             continue;
 
 
                         MyIdentity Identity = c.Pilot.GetIdentity();
-                        if(Identity is null)
+                        if (Identity is null)
                         {
                             //This shouldnt occur, but we added this for null check
                             Log.Error($"{c.Pilot.EntityId} doesnt have an identity!");
                             continue;
-                        }    
+                        }
 
 
                         Identity.Character?.Close();
@@ -411,15 +444,15 @@ namespace GridTransporter.BoundrySystem
                         if (Character.GetPlayerId(out MyPlayer.PlayerId ID))
                         {
                             var toolbar = MySession.Static.Toolbars.TryGetPlayerToolbar(ID);
-                            if(toolbar != null)
+                            if (toolbar != null)
                             {
                                 Item.SetToolbar(toolbar.GetObjectBuilder());
                             }
                         }
 
-                       
 
-                        
+
+
                         //Character.Close();
                         //Log.Warn("Adding player: " + Item.PlayerName + " to playerlist!");
 
@@ -464,20 +497,20 @@ namespace GridTransporter.BoundrySystem
 
             SendPlayers();
             Networking.Networking.PublishMessage(MessageType.GridTransport, this, Target.Client);
-            
-           
+
+
         }
 
         private void SendPlayers()
         {
             Log.Info("Sending all players to: " + PlayerDirectIP);
-            foreach(var player in Players)
+            foreach (var player in Players)
             {
                 ModCommunication.SendMessageTo(new JoinServerMessage(PlayerDirectIP), player.SteamID);
             }
         }
 
-  
+
 
         public class GridResult
         {
@@ -541,7 +574,7 @@ namespace GridTransporter.BoundrySystem
     }
 
     [ProtoContract]
-    public class  PlayerItem
+    public class PlayerItem
     {
         [ProtoMember(1)]
         public readonly string PlayerName;

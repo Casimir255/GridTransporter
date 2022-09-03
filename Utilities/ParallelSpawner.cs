@@ -6,6 +6,7 @@ using Sandbox.Game.GameSystems;
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using VRage;
@@ -13,6 +14,7 @@ using VRage.Game;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
+using VRage.ObjectBuilders;
 using VRageMath;
 
 namespace GridTransporter.Utilities
@@ -46,6 +48,27 @@ namespace GridTransporter.Utilities
             _maxCount = grids.Count();
             _callback = callback;
             _spawned = new HashSet<MyCubeGrid>();
+
+            //SaveGridToFile(@"C:\TestSave", "TestTransfer", _grids);
+        }
+
+        private static bool SaveGridToFile(string SavePath, string GridName, IEnumerable<MyObjectBuilder_CubeGrid> GridBuilders)
+        {
+            Directory.CreateDirectory(SavePath);
+            MyObjectBuilder_ShipBlueprintDefinition definition = MyObjectBuilderSerializer.CreateNewObject<MyObjectBuilder_ShipBlueprintDefinition>();
+
+            definition.Id = new MyDefinitionId(new MyObjectBuilderType(typeof(MyObjectBuilder_ShipBlueprintDefinition)), GridName);
+            definition.CubeGrids = GridBuilders.ToArray();
+            //PrepareGridForSave(definition);
+
+            MyObjectBuilder_Definitions builderDefinition = MyObjectBuilderSerializer.CreateNewObject<MyObjectBuilder_Definitions>();
+            builderDefinition.ShipBlueprints = new MyObjectBuilder_ShipBlueprintDefinition[] { definition };
+
+
+
+
+            Log.Warn("Saving grid @" + Path.Combine(SavePath, GridName + ".sbc"));
+            return MyObjectBuilderSerializer.SerializeXML(Path.Combine(SavePath, GridName + ".sbc"), false, builderDefinition);
         }
 
 

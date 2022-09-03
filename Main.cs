@@ -25,8 +25,6 @@ namespace GridTransporter
         public static Settings Config => _config?.Data;
         public static Persistent<Settings> _config;
 
-
-
         public UserControl _control;
         public UserControl GetControl() => _control ?? (_control = new UserControlInterface());
 
@@ -34,8 +32,6 @@ namespace GridTransporter
         public bool IsRunning = false;
         private Networking.Networking Socket;
         private BoundaryTask BoundryChecker;
-
-
 
         public override void Init(ITorchBase torch)
         {
